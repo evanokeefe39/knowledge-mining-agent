@@ -1,0 +1,7 @@
+"# Project Specifications"  
+""  
+"## Functional Requirements"  
+"- TODO: List functional requirements here"  
+""  
+"## Non-Functional Requirements"  
+"- TODO: List non-functional requirements here" 
