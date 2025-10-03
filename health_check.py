@@ -5,11 +5,11 @@ from dotenv import load_dotenv
 def health_check():
     load_dotenv()
 
-    user = os.getenv('user')
-    password = os.getenv('password')
-    host = os.getenv('host')
-    port = os.getenv('port')
-    dbname = os.getenv('dbname')
+    user = os.getenv('DB_USER')
+    password = os.getenv('DB_PASSWORD')
+    host = os.getenv('DB_HOST')
+    port = os.getenv('DB_PORT')
+    dbname = os.getenv('DB_NAME')
 
     if not all([user, password, host, port, dbname]):
         print("Error: Missing database connection parameters in .env file")
