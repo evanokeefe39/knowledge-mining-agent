@@ -2,4 +2,4 @@
 *.ipynb
 .vscode
 **__pycache__
-site/
+site/*
