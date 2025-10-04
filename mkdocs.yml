@@ -1,0 +1,5 @@
+site_name: Knowledge Mining Agent
+nav:
+  - Home: index.md
+  - API Reference: api.md
+theme: readthedocs
