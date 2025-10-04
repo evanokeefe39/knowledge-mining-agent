@@ -19,10 +19,18 @@ from ..config import config
 
 
 class BaselineRAGAgent:
-    """Baseline RAG agent for business content Q&A."""
+    """Baseline RAG agent for business content Q&A.
+
+    Implements a retrieval-augmented generation system using LangChain,
+    ChromaDB for vector storage, and OpenAI embeddings. Designed specifically
+    for Alex Hormozi's business content with agentic retrieval capabilities.
+    """
 
     def __init__(self):
-        """Initialize the RAG agent with vector store and tools."""
+        """Initialize the RAG agent with vector store and tools.
+
+        Sets up OpenAI embeddings and prepares the agent for document loading.
+        """
         self.embeddings = OpenAIEmbeddings(
             openai_api_key=config.get('OPENAI_API_KEY')
         )
@@ -33,7 +41,8 @@ class BaselineRAGAgent:
         """Load and index documents into the vector store.
 
         Args:
-            documents: List of LangChain Document objects with content and metadata
+            documents: List of LangChain Document objects with content and metadata.
+                      Documents should be preprocessed with business-specific chunking.
         """
         self.vector_store = Chroma.from_documents(
             documents=documents,
@@ -43,13 +52,17 @@ class BaselineRAGAgent:
 
     @tool(response_format="content_and_artifact")
     def retrieve_context(self, query: str) -> Tuple[str, List[Document]]:
-        """Retrieve information to help answer a query.
+        """Retrieve relevant business content to help answer a query.
+
+        Performs similarity search against the vector store to find the most
+        relevant business advice and frameworks from Alex Hormozi's content.
 
         Args:
-            query: The user's question
+            query: The user's business-related question
 
         Returns:
-            Tuple of (serialized_context, retrieved_documents)
+            Tuple of (serialized_context, retrieved_documents) where
+            serialized_context contains formatted source and content information.
         """
         if not self.vector_store:
             return "No documents loaded in vector store.", []
@@ -62,11 +75,15 @@ class BaselineRAGAgent:
         return serialized, retrieved_docs
 
     def initialize_agent(self):
-        """Initialize the LangChain agent with retrieval tool."""
+        """Initialize the LangChain agent with retrieval tool.
+
+        Creates a zero-shot react agent that can use the retrieval tool
+        to gather context before generating responses.
+        """
         tools = [self.retrieve_context]
 
         llm = OpenAI(
-            temperature=0,
+            temperature=config.get('AGENT__TEMPERATURE', 0.0),
             openai_api_key=config.get('OPENAI_API_KEY')
         )
 
@@ -74,17 +91,21 @@ class BaselineRAGAgent:
             tools=tools,
             llm=llm,
             agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True
+            verbose=config.get('AGENT__VERBOSE', True)
         )
 
     def query(self, question: str) -> str:
-        """Answer a question using the RAG system.
+        """Answer a business question using the RAG system.
 
         Args:
-            question: The user's question
+            question: The user's business-related question about entrepreneurship,
+                     sales, marketing, or scaling strategies.
 
         Returns:
-            The agent's response
+            The agent's response with relevant business advice and context.
+
+        Raises:
+            ValueError: If the agent has not been initialized.
         """
         if not self.agent:
             raise ValueError("Agent not initialized. Call initialize_agent() first.")

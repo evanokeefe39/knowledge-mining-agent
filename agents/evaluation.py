@@ -17,10 +17,22 @@ from datasets import Dataset
 
 
 class RAGEvaluator:
-    """Evaluator for RAG system using RAGAS metrics."""
+    """Evaluator for RAG system performance using RAGAS framework.
+
+    Provides comprehensive evaluation of retrieval-augmented generation systems
+    using industry-standard metrics. Specifically designed for assessing
+    business content Q&A systems with focus on factual accuracy and relevance.
+    """
 
     def __init__(self):
-        """Initialize evaluator with RAGAS metrics."""
+        """Initialize evaluator with standard RAGAS metrics.
+
+        Sets up the four core evaluation metrics:
+        - Context Precision: Relevance of retrieved documents
+        - Context Recall: Completeness of retrieved information
+        - Faithfulness: Groundedness of answers in retrieved context
+        - Answer Relevancy: Alignment of answers with questions
+        """
         self.metrics = [
             context_precision,
             context_recall,
@@ -33,16 +45,24 @@ class RAGEvaluator:
                         answers: List[str],
                         contexts: List[List[str]],
                         ground_truths: List[str]) -> Dict[str, float]:
-        """Evaluate RAG performance on a dataset.
+        """Evaluate RAG performance on a complete dataset.
+
+        Runs comprehensive evaluation across multiple Q&A pairs to assess
+        overall system performance on business content queries.
 
         Args:
-            questions: List of questions
-            answers: List of generated answers
-            contexts: List of retrieved contexts (list of strings per question)
-            ground_truths: List of ground truth answers
+            questions: List of business-related questions from users
+            answers: List of generated answers from the RAG system
+            contexts: List of retrieved context chunks for each question,
+                     where each context is a list of strings
+            ground_truths: List of verified correct answers for comparison
 
         Returns:
-            Dictionary of metric scores
+            Dictionary containing average scores for each metric:
+            - context_precision: Average precision of retrieved contexts
+            - context_recall: Average recall of relevant information
+            - faithfulness: Average faithfulness to retrieved context
+            - answer_relevancy: Average relevance of answers to questions
         """
         # Prepare dataset
         data = {
@@ -64,16 +84,19 @@ class RAGEvaluator:
                        answer: str,
                        contexts: List[str],
                        ground_truth: str) -> Dict[str, float]:
-        """Evaluate a single Q&A pair.
+        """Evaluate a single Q&A interaction.
+
+        Useful for real-time evaluation of individual queries or for
+        debugging specific cases in the business content domain.
 
         Args:
-            question: The question
-            answer: Generated answer
-            contexts: Retrieved contexts
-            ground_truth: Ground truth answer
+            question: A single business-related question
+            answer: The generated answer from the RAG system
+            contexts: List of retrieved context strings for this question
+            ground_truth: The verified correct answer for comparison
 
         Returns:
-            Dictionary of metric scores
+            Dictionary with individual metric scores for this Q&A pair
         """
         return self.evaluate_dataset(
             questions=[question],

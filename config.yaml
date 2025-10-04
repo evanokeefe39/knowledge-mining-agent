@@ -1,7 +1,22 @@
+# Agent Configuration
 agent:
-  verbose: true
-  model_name: "gpt-3.5-turbo"
-  temperature: 0.7
+  verbose: ${AGENT__VERBOSE}
+  model_name: ${AGENT__MODEL_NAME}
+  temperature: ${AGENT__TEMPERATURE}
 
+# Database Configuration
 database:
   schema: "dw"
+  host: ${SUPABASE__DB_HOST}
+  user: ${SUPABASE__DB_USER}
+  password: ${SUPABASE__DB_PASSWORD}
+  name: ${SUPABASE__DB_NAME}
+  port: ${SUPABASE__DB_PORT}
+
+# Vector Store Configuration
+vector_store:
+  path: ${VECTOR_STORE_PATH}
+
+# OpenAI Configuration
+openai:
+  api_key: ${OPENAI_API_KEY}
