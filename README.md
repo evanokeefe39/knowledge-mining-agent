@@ -17,6 +17,7 @@ This project aims to build an AI-powered knowledge mining agent using LangChain.
 - **Initial Setup**: Created project structure with Poetry, added dependencies for LangChain, YouTube transcripts, Google API, and PostgreSQL.
 - **Agent Skeleton**: Implemented basic LangChain agent structure with tools and configuration.
 - **Database Integration**: Added health check for Supabase PostgreSQL connection.
+- **Spec Update**: Adjusted functional requirements to focus on querying existing enriched data in Supabase dw schema, removing need for API ingestion.
 
 ## Benchmarks for Project
 TODO: see what benchmarks are appropriate for this data and application

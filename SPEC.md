@@ -1,9 +1,7 @@
 # Project Specifications
 
 ## Functional Requirements
-- The agent must be able to process and extract insights from YouTube transcripts using the YouTube Transcript API.
-- Integrate with Google APIs for additional data retrieval.
-- Store structured data in a PostgreSQL database (Supabase).
+- The agent must be able to query and analyze existing enriched data from the Supabase PostgreSQL database under the dw schema.
 - Use LangChain for agent orchestration and tool management.
 - Provide a health check for database connectivity.
 - Support configuration via environment variables.
