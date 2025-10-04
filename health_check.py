@@ -87,21 +87,60 @@ def check_openai_api():
         return False
 
 def check_vector_store():
-    """Check vector store directory."""
+    """Check vector store table in Supabase."""
     try:
-        vector_path = config.get('VECTOR_STORE_PATH', './chroma_db')
-        path = Path(vector_path)
+        import psycopg2
 
-        if path.exists() and path.is_dir():
-            logger.info(f"Vector store directory exists: {vector_path}")
-            return True
+        user = config.get('SUPABASE__DB_USER')
+        password = config.get('SUPABASE__DB_PASSWORD')
+        host = config.get('SUPABASE__DB_HOST')
+        port = config.get('SUPABASE__DB_PORT', 5432)
+        dbname = config.get('SUPABASE__DB_NAME')
+        table_name = config.get('VECTOR_STORE_TABLE', 'hormozi_transcripts')
+
+        if not all([user, password, host, dbname]):
+            logger.error("Missing database connection parameters")
+            return False
+
+        conn = psycopg2.connect(
+            user=user,
+            password=password,
+            host=host,
+            port=port,
+            database=dbname
+        )
+        cursor = conn.cursor()
+
+        # Check if pgvector extension is available
+        cursor.execute("SELECT * FROM pg_extension WHERE extname = 'vector';")
+        if not cursor.fetchone():
+            logger.warning("pgvector extension not found - vector operations may fail")
         else:
-            logger.warning(f"Vector store directory does not exist: {vector_path}")
-            # Try to create it
-            path.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Created vector store directory: {vector_path}")
-            return True
+            logger.info("pgvector extension available")
 
+        # Check if table exists (basic check)
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name = %s
+            );
+        """, (table_name,))
+        exists = cursor.fetchone()[0]
+
+        if exists:
+            logger.info(f"Vector store table exists: {table_name}")
+        else:
+            logger.info(f"Vector store table will be created: {table_name}")
+
+        cursor.close()
+        conn.close()
+        logger.info("Vector store health check passed")
+        return True
+
+    except ImportError:
+        logger.error("psycopg2 not installed")
+        return False
     except Exception as e:
         logger.error(f"Vector store health check failed: {str(e)}")
         return False

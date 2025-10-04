@@ -9,7 +9,7 @@ import os
 from typing import List, Tuple
 
 from langchain.tools import tool
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import PGVector
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.agents import initialize_agent, AgentType
@@ -38,16 +38,26 @@ class BaselineRAGAgent:
         self.agent = None
 
     def load_documents(self, documents: List[Document]):
-        """Load and index documents into the vector store.
+        """Load and index documents into the Supabase PGVector store.
 
         Args:
             documents: List of LangChain Document objects with content and metadata.
                       Documents should be preprocessed with business-specific chunking.
         """
-        self.vector_store = Chroma.from_documents(
+        # Build connection string for Supabase
+        connection_string = (
+            f"postgresql://{config.get('SUPABASE__DB_USER')}:"
+            f"{config.get('SUPABASE__DB_PASSWORD')}@"
+            f"{config.get('SUPABASE__DB_HOST')}:"
+            f"{config.get('SUPABASE__DB_PORT')}/"
+            f"{config.get('SUPABASE__DB_NAME')}"
+        )
+
+        self.vector_store = PGVector.from_documents(
             documents=documents,
             embedding=self.embeddings,
-            persist_directory=config.get('VECTOR_STORE_PATH', './chroma_db')
+            connection_string=connection_string,
+            collection_name=config.get('VECTOR_STORE_TABLE', 'hormozi_transcripts')
         )
 
     @tool(response_format="content_and_artifact")
