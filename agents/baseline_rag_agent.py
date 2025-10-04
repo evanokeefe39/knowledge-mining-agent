@@ -2,7 +2,7 @@
 Baseline RAG Agent for Alex Hormozi's business content.
 
 This module implements a basic Retrieval-Augmented Generation (RAG) system
-using LangChain, ChromaDB for vector storage, and OpenAI embeddings.
+using LangChain, pgvector in Supabase for vector storage, and OpenAI embeddings.
 """
 
 import os
@@ -22,7 +22,7 @@ class BaselineRAGAgent:
     """Baseline RAG agent for business content Q&A.
 
     Implements a retrieval-augmented generation system using LangChain,
-    ChromaDB for vector storage, and OpenAI embeddings. Designed specifically
+    pgvector in Supabase for vector storage, and OpenAI embeddings. Designed specifically
     for Alex Hormozi's business content with agentic retrieval capabilities.
     """
 

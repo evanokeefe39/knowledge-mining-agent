@@ -2,6 +2,18 @@
 
 This document contains project-specific guidelines for developing agents in the Knowledge Mining Agent project.
 
+## Utilities
+Place helper functions, scripts, or tools for repetitive development tasks in a `/utils` folder. These are not part of the application runtime but speed up developer workflows. Examples include:
+
+- **Build scripts** → e.g., building Docker images, packaging artifacts.
+- **Database helpers** → scripts to query schema/metadata, list tables/columns, or run quick validation queries.
+- **Health checks** → scripts to test connectivity to databases, APIs, or other services (e.g., `"SELECT 1"` for SQL).
+- **Code quality tools** → wrappers for linting, formatting, or running test suites.
+- **Data sampling scripts** → quick extract/transform scripts to preview external data sources and inform the agent when clarity is needed.
+- **Automation tasks** → scripts to bootstrap configs, rotate logs, or refresh environments.
+
+For **ad-hoc or temporary data**, use a `.temp` folder at the project root and add it to `.gitignore` to avoid committing. Keep `.temp` for throwaway datasets, test exports, or sandbox files.
+
 ## Core Principles
 
 ### Business Content Focus

@@ -138,6 +138,9 @@ dmypy.json
 *.swp
 *.swo
 
+# Temporary files
+.temp/
+
 # OS
 .DS_Store
 Thumbs.db
