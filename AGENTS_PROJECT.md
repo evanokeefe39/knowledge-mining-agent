@@ -58,6 +58,12 @@ This document contains project-specific guidelines for developing agents in the 
 - Use synthetic data generation for evaluation datasets
 - Maintain evaluation baselines for performance tracking
 
+## Database Integration
+- Use `utils/db_inspector.py` to explore dw schema structure
+- Validate table names and column schemas before agent development
+- Check data types and relationships for proper data preprocessing
+- Use sample data to understand content structure for chunking strategies
+
 ## Implementation Checklist
 
 ### For New Agents
