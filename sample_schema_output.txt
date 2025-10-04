@@ -1,0 +1,88 @@
+# Sample Schema Output for Hormozi Transcripts (dw schema)
+# This is what the db_inspector --overview would produce with real data
+
+=== Schema Overview: dw ===
+
+📋 Table: hormozi_transcripts
+   Rows: 500
+   Size: 25 MB
+   Columns: 12
+   Column Details:
+     - id (integer) NOT NULL
+     - video_id (character varying) NOT NULL
+     - title (character varying) NOT NULL
+     - transcript_text (text) NOT NULL
+     - duration_seconds (integer) NULL
+     - upload_date (timestamp without time zone) NULL
+     - summary (text) NULL
+     - topics (jsonb) NULL
+     - key_points (jsonb) NULL
+     - created_at (timestamp without time zone) NOT NULL
+     - updated_at (timestamp without time zone) NOT NULL
+     - processed_status (character varying) NOT NULL
+
+📋 Table: hormozi_topics
+   Rows: 50
+   Size: 2 MB
+   Columns: 8
+   Column Details:
+     - id (integer) NOT NULL
+     - topic_name (character varying) NOT NULL
+     - description (text) NULL
+     - video_count (integer) NOT NULL
+     - parent_topic_id (integer) NULL
+     - created_at (timestamp without time zone) NOT NULL
+     - updated_at (timestamp without time zone) NOT NULL
+     - is_active (boolean) NOT NULL
+
+📋 Table: hormozi_frameworks
+   Rows: 25
+   Size: 1 MB
+   Columns: 9
+   Column Details:
+     - id (integer) NOT NULL
+     - framework_name (character varying) NOT NULL
+     - description (text) NULL
+     - steps (jsonb) NULL
+     - video_references (jsonb) NULL
+     - category (character varying) NOT NULL
+     - created_at (timestamp without time zone) NOT NULL
+     - updated_at (timestamp without time zone) NOT NULL
+     - is_verified (boolean) NOT NULL
+
+📋 Table: transcript_chunks
+   Rows: 2500
+   Size: 15 MB
+   Columns: 10
+   Column Details:
+     - id (integer) NOT NULL
+     - transcript_id (integer) NOT NULL
+     - chunk_text (text) NOT NULL
+     - chunk_index (integer) NOT NULL
+     - start_time (integer) NULL
+     - end_time (integer) NULL
+     - embedding (vector) NULL
+     - created_at (timestamp without time zone) NOT NULL
+     - updated_at (timestamp without time zone) NOT NULL
+     - chunk_metadata (jsonb) NULL
+
+📋 Table: video_metadata
+   Rows: 500
+   Size: 8 MB
+   Columns: 15
+   Column Details:
+     - id (integer) NOT NULL
+     - video_id (character varying) NOT NULL
+     - youtube_url (character varying) NULL
+     - thumbnail_url (character varying) NULL
+     - view_count (bigint) NULL
+     - like_count (integer) NULL
+     - comment_count (integer) NULL
+     - published_at (timestamp without time zone) NULL
+     - tags (jsonb) NULL
+     - channel_info (jsonb) NULL
+     - download_status (character varying) NOT NULL
+     - created_at (timestamp without time zone) NOT NULL
+     - updated_at (timestamp without time zone) NOT NULL
+     - last_synced (timestamp without time zone) NULL
+     - sync_status (character varying) NOT NULL

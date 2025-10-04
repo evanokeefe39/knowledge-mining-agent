@@ -44,7 +44,7 @@ This document contains project-specific guidelines for developing agents in the 
 - All vector operations use Supabase pgvector
 - Connection string format: `postgresql://user:pass@host:port/db`
 - Table naming: `hormozi_transcripts` for main content
-- Health checks must verify pgvector extension availability
+- Health checks must verify pgvector extension availability (see `utils/health_check.py`)
 
 ### Code Quality
 - Comprehensive docstrings for all public methods
@@ -74,7 +74,7 @@ This document contains project-specific guidelines for developing agents in the 
 - [ ] Add comprehensive docstrings
 - [ ] Update health checks if new services added
 - [ ] Add evaluation integration
-- [ ] Update AGENTS_PROJECT.md with new agent details
+- [ ] Update AGENTS.md with new agent details
 
 ### For Agent Improvements
 - [ ] Run existing evaluation suite
