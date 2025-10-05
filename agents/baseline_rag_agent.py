@@ -9,13 +9,17 @@ import os
 from typing import List, Tuple
 
 from langchain.tools import tool
+from langchain.agents import Tool
 from langchain_community.vectorstores import PGVector
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.agents import initialize_agent, AgentType
-from langchain.llms import OpenAI
+from langchain_community.llms import OpenAI
 
-from ..config import config
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import config
 
 
 class BaselineRAGAgent:
@@ -45,6 +49,7 @@ class BaselineRAGAgent:
                       Documents should be preprocessed with business-specific chunking.
         """
         # Build connection string for Supabase
+        schema = config.get('database', {}).get('schema', 'dw')
         connection_string = (
             f"postgresql://{config.get('SUPABASE__DB_USER')}:"
             f"{config.get('SUPABASE__DB_PASSWORD')}@"
@@ -60,8 +65,7 @@ class BaselineRAGAgent:
             collection_name=config.get('VECTOR_STORE_TABLE', 'hormozi_transcripts')
         )
 
-    @tool(response_format="content_and_artifact")
-    def retrieve_context(self, query: str) -> Tuple[str, List[Document]]:
+    def _retrieve_context(self, query: str) -> str:
         """Retrieve relevant business content to help answer a query.
 
         Performs similarity search against the vector store to find the most
@@ -71,18 +75,17 @@ class BaselineRAGAgent:
             query: The user's business-related question
 
         Returns:
-            Tuple of (serialized_context, retrieved_documents) where
-            serialized_context contains formatted source and content information.
+            Formatted string containing relevant context from documents.
         """
         if not self.vector_store:
-            return "No documents loaded in vector store.", []
+            return "No documents loaded in vector store."
 
         retrieved_docs = self.vector_store.similarity_search(query, k=2)
         serialized = "\n\n".join(
             (f"Source: {doc.metadata}\nContent: {doc.page_content}")
             for doc in retrieved_docs
         )
-        return serialized, retrieved_docs
+        return serialized
 
     def initialize_agent(self):
         """Initialize the LangChain agent with retrieval tool.
@@ -90,7 +93,13 @@ class BaselineRAGAgent:
         Creates a zero-shot react agent that can use the retrieval tool
         to gather context before generating responses.
         """
-        tools = [self.retrieve_context]
+        tools = [
+            Tool(
+                name="retrieve_context",
+                func=self._retrieve_context,
+                description="Retrieve relevant business content to help answer a query. Use this tool to find business advice and frameworks from Alex Hormozi's content."
+            )
+        ]
 
         llm = OpenAI(
             temperature=config.get('AGENT__TEMPERATURE', 0.0),

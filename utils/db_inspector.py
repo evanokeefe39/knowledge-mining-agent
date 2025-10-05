@@ -7,6 +7,9 @@ and columns in the dw (data warehouse) schema.
 
 import psycopg2
 from typing import List, Dict, Any, Optional
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import config
 from log import setup_logger
 
@@ -23,7 +26,7 @@ class DatabaseInspector:
         self.host = config.get('SUPABASE__DB_HOST')
         self.port = config.get('SUPABASE__DB_PORT', 5432)
         self.dbname = config.get('SUPABASE__DB_NAME')
-        self.schema = config.get('DATABASE__SCHEMA', 'dw')
+        self.schema = config.get('database', {}).get('schema', 'dw')
 
     def _get_connection(self):
         """Get a database connection."""

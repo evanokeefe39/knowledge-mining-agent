@@ -5,7 +5,7 @@ Implements metrics from RAGAS framework: context precision, context recall,
 faithfulness, and answer relevancy.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from ragas import evaluate
 from ragas.metrics import (
     context_precision,
@@ -41,10 +41,10 @@ class RAGEvaluator:
         ]
 
     def evaluate_dataset(self,
-                        questions: List[str],
-                        answers: List[str],
-                        contexts: List[List[str]],
-                        ground_truths: List[str]) -> Dict[str, float]:
+                         questions: List[str],
+                         answers: List[str],
+                         contexts: List[List[str]],
+                         ground_truths: List[str]) -> Dict[str, Any]:
         """Evaluate RAG performance on a complete dataset.
 
         Runs comprehensive evaluation across multiple Q&A pairs to assess
@@ -80,10 +80,10 @@ class RAGEvaluator:
         return results
 
     def evaluate_single(self,
-                       question: str,
-                       answer: str,
-                       contexts: List[str],
-                       ground_truth: str) -> Dict[str, float]:
+                        question: str,
+                        answer: str,
+                        contexts: List[str],
+                        ground_truth: str) -> Dict[str, Any]:
         """Evaluate a single Q&A interaction.
 
         Useful for real-time evaluation of individual queries or for
