@@ -3,6 +3,8 @@
 ## Background
 This project aims to build an AI-powered knowledge mining agent using LangChain. The agent processes and extracts insights from various sources such as YouTube transcripts and Google APIs, storing structured data in a PostgreSQL database for querying and analysis.
 
+This repository focuses on developing AI agents and does not include chat application interfaces.
+
 ### Goals
 - Develop an agent capable of mining knowledge from multimedia and text sources.
 - Integrate with external APIs for data retrieval.
