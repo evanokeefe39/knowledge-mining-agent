@@ -6,7 +6,7 @@ agent:
 
 # Database Configuration
 database:
-  schema: "sqlmesh__dw"
+  schema: "dw"
   host: ${SUPABASE__DB_HOST}
   user: ${SUPABASE__DB_USER}
   password: ${SUPABASE__DB_PASSWORD}

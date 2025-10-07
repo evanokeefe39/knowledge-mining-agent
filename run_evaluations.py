@@ -48,7 +48,7 @@ def run_baseline_evaluation():
 
         # Filter for long form transcripts (actual transcript content preferred)
         cursor.execute(f"""
-            SELECT * FROM {inspector.schema}.dw__fact_youtube_transcripts__2004009856
+            SELECT * FROM {inspector.schema}.fact_youtube_transcripts
             WHERE (transcript IS NOT NULL AND length(transcript) > 200)
                OR (transcript_summary IS NOT NULL AND length(transcript_summary::text) > 200)
             ORDER BY
@@ -62,7 +62,7 @@ def run_baseline_evaluation():
         long_form_rows = cursor.fetchall()
 
         # Get column names
-        columns = inspector.get_table_columns('dw__fact_youtube_transcripts__2004009856')
+        columns = inspector.get_table_columns('fact_youtube_transcripts')
         column_names = [col['name'] for col in columns]
 
         # Convert to dict format
