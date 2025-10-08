@@ -1,107 +1,85 @@
 """
 Configuration module for the knowledge mining agent.
 
-Parses config.yaml and .env files to provide centralized configuration.
-Supports dynamic variable expansion and secret obfuscation.
+Parses config.yaml and expands environment variables using Pydantic for validation.
 """
 
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 import yaml
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 
-class Config:
-    """Configuration manager with dynamic expansion and secret obfuscation."""
+class AgentConfig(BaseModel):
+    verbose: bool = False
+    model_name: str = "gpt-3.5-turbo"
+    temperature: float = 0.7
 
-    # Keys that contain sensitive information
-    SECRET_KEYS = {
-        'password', 'secret', 'key', 'token', 'api_key',
-        'db_password', 'openai_api_key', 'openrouter_api_key'
-    }
 
-    def __init__(self):
-        """Initialize configuration from files."""
-        load_dotenv()
+class DatabaseConfig(BaseModel):
+    schema: str = "dw"
+    host: str
+    user: str
+    password: str
+    name: str
+    port: int
 
-        self._config = {}
 
-        # Load config.yaml with expansion
-        config_path = Path(__file__).parent / "config.yaml"
-        if config_path.exists():
-            with open(config_path, 'r') as f:
-                yaml_config = yaml.safe_load(f) or {}
-                # Expand variables in yaml
-                yaml_config = self._expand_variables(yaml_config)
-                self._config.update(yaml_config)
+class VectorStoreConfig(BaseModel):
+    table: str = "hormozi_transcripts"
 
-        # Override with environment variables (already expanded by dotenv)
-        for key, value in os.environ.items():
-            self._config[key] = value
 
-    def _expand_variables(self, data: Any) -> Any:
-        """Recursively expand ${VAR} variables in data."""
-        if isinstance(data, dict):
-            return {k: self._expand_variables(v) for k, v in data.items()}
-        elif isinstance(data, list):
-            return [self._expand_variables(item) for item in data]
-        elif isinstance(data, str):
-            return self._expand_string(data)
-        else:
-            return data
+class OpenAIConfig(BaseModel):
+    api_key: str
 
-    def _expand_string(self, value: str) -> str:
-        """Expand ${VAR} in string using environment variables."""
-        def replacer(match):
-            var_name = match.group(1)
-            return os.environ.get(var_name, match.group(0))  # Leave unresolved if not found
 
-        return re.sub(r'\$\{([^}]+)\}', replacer, value)
+class Config(BaseModel):
+    agent: AgentConfig
+    database: DatabaseConfig
+    vector_store: VectorStoreConfig
+    openai: OpenAIConfig
 
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get configuration value.
 
-        Args:
-            key: Configuration key
-            default: Default value if key not found
+def _expand_variables(data: Any) -> Any:
+    """Recursively expand ${VAR} variables in data."""
+    if isinstance(data, dict):
+        return {k: _expand_variables(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [_expand_variables(item) for item in data]
+    elif isinstance(data, str):
+        return _expand_string(data)
+    else:
+        return data
 
-        Returns:
-            Configuration value
-        """
-        return self._config.get(key, default)
 
-    def __getitem__(self, key: str) -> Any:
-        """Get configuration value with dict-like access."""
-        return self._config[key]
+def _expand_string(value: str) -> str:
+    """Expand ${VAR} in string using environment variables."""
+    def replacer(match):
+        var_name = match.group(1)
+        return os.environ.get(var_name, match.group(0))  # Leave unresolved if not found
 
-    def __contains__(self, key: str) -> bool:
-        """Check if key exists."""
-        return key in self._config
+    return re.sub(r'\$\{([^}]+)\}', replacer, value)
 
-    def get_obfuscated(self, key: str, default: Any = None) -> Any:
-        """Get configuration value with secrets obfuscated for logging.
 
-        Args:
-            key: Configuration key
-            default: Default value if key not found
+def load_config() -> Config:
+    """Load and validate configuration from config.yaml."""
+    load_dotenv()
 
-        Returns:
-            Obfuscated configuration value
-        """
-        value = self.get(key, default)
-        if isinstance(value, str) and any(secret in key.lower() for secret in self.SECRET_KEYS):
-            if len(value) > 8:
-                return value[:4] + '*' * (len(value) - 8) + value[-4:]
-            else:
-                return '*' * len(value)
-        return value
+    config_path = Path(__file__).parent / "config.yaml"
+    if not config_path.exists():
+        raise FileNotFoundError(f"config.yaml not found at {config_path}")
 
-    def log_safe_config(self) -> Dict[str, Any]:
-        """Return configuration dict with secrets obfuscated for logging."""
-        return {k: self.get_obfuscated(k) for k in self._config.keys()}
+    with open(config_path, 'r') as f:
+        yaml_config = yaml.safe_load(f) or {}
+
+    # Expand variables in yaml
+    expanded_config = _expand_variables(yaml_config)
+
+    return Config(**expanded_config)
 
 
 # Global config instance
-config = Config()
+config = load_config()
