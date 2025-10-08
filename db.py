@@ -23,12 +23,13 @@ def get_db():
 
     if _db_pool is None:
         # Initialize connection pool
+        db_config = config.database
         connection_string = (
-            f"postgresql://{config.get('SUPABASE__DB_USER')}:"
-            f"{config.get('SUPABASE__DB_PASSWORD')}@"
-            f"{config.get('SUPABASE__DB_HOST')}:"
-            f"{config.get('SUPABASE__DB_PORT')}/"
-            f"{config.get('SUPABASE__DB_NAME')}"
+            f"postgresql://{db_config.user}:"
+            f"{db_config.password}@"
+            f"{db_config.host}:"
+            f"{db_config.port}/"
+            f"{db_config.name}"
         )
         _db_pool = pool.SimpleConnectionPool(1, 10, connection_string)
 
