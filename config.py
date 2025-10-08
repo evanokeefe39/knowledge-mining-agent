@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 import yaml
+from dotenv import load_dotenv
 
 
 class Config:
@@ -16,6 +17,8 @@ class Config:
 
     def __init__(self):
         """Initialize configuration from config.yaml."""
+        load_dotenv()
+
         self._config = {}
 
         # Load config.yaml with expansion
