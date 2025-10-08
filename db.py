@@ -7,6 +7,9 @@ Provides a simple get_db() function to get a configured database client.
 import psycopg2
 from psycopg2 import pool
 from config import config
+from log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 # Connection pool for reuse
@@ -22,6 +25,7 @@ def get_db():
     global _db_pool
 
     if _db_pool is None:
+        logger.info("Initializing database connection pool")
         # Initialize connection pool
         db_config = config.database
         connection_string = (
@@ -33,6 +37,7 @@ def get_db():
         )
         _db_pool = pool.SimpleConnectionPool(1, 10, connection_string)
 
+    logger.debug("Getting database connection from pool")
     return _db_pool.getconn()
 
 
@@ -44,4 +49,5 @@ def close_db(conn):
     """
     global _db_pool
     if _db_pool:
+        logger.debug("Returning connection to pool")
         _db_pool.putconn(conn)
