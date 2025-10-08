@@ -1,7 +1,7 @@
 """
 Configuration module for the knowledge mining agent.
 
-Parses config.yaml and expands environment variables.
+Parses config.yaml and expands environment variables using Pydantic for validation.
 """
 
 import os
@@ -10,56 +10,76 @@ from pathlib import Path
 from typing import Any
 import yaml
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 
-class Config:
-    """Simple configuration manager that parses YAML and expands env vars."""
+class AgentConfig(BaseModel):
+    verbose: bool = False
+    model_name: str = "gpt-3.5-turbo"
+    temperature: float = 0.7
 
-    def __init__(self):
-        """Initialize configuration from config.yaml."""
-        load_dotenv()
 
-        self._config = {}
+class DatabaseConfig(BaseModel):
+    schema: str = "dw"
+    host: str
+    user: str
+    password: str
+    name: str
+    port: int
 
-        # Load config.yaml with expansion
-        config_path = Path(__file__).parent / "config.yaml"
-        if config_path.exists():
-            with open(config_path, 'r') as f:
-                yaml_config = yaml.safe_load(f) or {}
-                # Expand variables in yaml
-                self._config = self._expand_variables(yaml_config)
 
-    def _expand_variables(self, data: Any) -> Any:
-        """Recursively expand ${VAR} variables in data."""
-        if isinstance(data, dict):
-            return {k: self._expand_variables(v) for k, v in data.items()}
-        elif isinstance(data, list):
-            return [self._expand_variables(item) for item in data]
-        elif isinstance(data, str):
-            return self._expand_string(data)
-        else:
-            return data
+class VectorStoreConfig(BaseModel):
+    table: str = "hormozi_transcripts"
 
-    def _expand_string(self, value: str) -> str:
-        """Expand ${VAR} in string using environment variables."""
-        def replacer(match):
-            var_name = match.group(1)
-            return os.environ.get(var_name, match.group(0))  # Leave unresolved if not found
 
-        return re.sub(r'\$\{([^}]+)\}', replacer, value)
+class OpenAIConfig(BaseModel):
+    api_key: str
 
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get configuration value."""
-        return self._config.get(key, default)
 
-    def __getitem__(self, key: str) -> Any:
-        """Get configuration value with dict-like access."""
-        return self._config[key]
+class Config(BaseModel):
+    agent: AgentConfig
+    database: DatabaseConfig
+    vector_store: VectorStoreConfig
+    openai: OpenAIConfig
 
-    def __contains__(self, key: str) -> bool:
-        """Check if key exists."""
-        return key in self._config
+
+def _expand_variables(data: Any) -> Any:
+    """Recursively expand ${VAR} variables in data."""
+    if isinstance(data, dict):
+        return {k: _expand_variables(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [_expand_variables(item) for item in data]
+    elif isinstance(data, str):
+        return _expand_string(data)
+    else:
+        return data
+
+
+def _expand_string(value: str) -> str:
+    """Expand ${VAR} in string using environment variables."""
+    def replacer(match):
+        var_name = match.group(1)
+        return os.environ.get(var_name, match.group(0))  # Leave unresolved if not found
+
+    return re.sub(r'\$\{([^}]+)\}', replacer, value)
+
+
+def load_config() -> Config:
+    """Load and validate configuration from config.yaml."""
+    load_dotenv()
+
+    config_path = Path(__file__).parent / "config.yaml"
+    if not config_path.exists():
+        raise FileNotFoundError(f"config.yaml not found at {config_path}")
+
+    with open(config_path, 'r') as f:
+        yaml_config = yaml.safe_load(f) or {}
+
+    # Expand variables in yaml
+    expanded_config = _expand_variables(yaml_config)
+
+    return Config(**expanded_config)
 
 
 # Global config instance
-config = Config()
+config = load_config()
