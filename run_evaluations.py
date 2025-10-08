@@ -3,195 +3,169 @@
 Run evaluations against the baseline RAG agent using real Hormozi transcript data.
 
 This script uses the actual RAG agent from the app and evaluates its performance
-against real Alex Hormozi content using the RAGAS evaluation framework.
+against real Alex Hormozi content using the DeepEval evaluation framework.
 """
 
 import sys
 import os
+import json
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import numpy as np
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from typing import List, Dict, Any
 from agents.baseline_rag_agent import BaselineRAGAgent
 from agents.evaluation import RAGEvaluator
-from app.app import load_real_transcript_data, simulate_retrieval
+from agents.data_preprocessing import BusinessContentPreprocessor
 from config import config
 
 
-def create_hormozi_test_data() -> Dict[str, List]:
-    """Create test questions based on Alex Hormozi's long form content."""
+def load_evaluation_dataset_from_json(json_path: str = "eval_dataset.json") -> Dict[str, Any]:
+    """Load evaluation dataset from JSON file with explicit chunks and metadata."""
+    print(f"Loading evaluation dataset from {json_path}...")
+
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    questions = []
+    ground_truths = []
+    relevant_chunks = []  # List of chunk objects with text and metadata
+
+    for item in data['questions']:
+        questions.append(item['question'])
+        ground_truths.append(item['ground_truth'])
+        relevant_chunks.append(item['relevant_chunks'])  # List of chunk dicts
+
+    print(f"Loaded {len(questions)} evaluation questions from JSON")
+
     return {
-        'questions': [
-            "What are the main types of leverage Alex Hormozi discusses for scaling businesses?",
-            "How does Alex Hormozi describe the importance of listening in sales conversations?"
-        ],
-        'ground_truths': [
-            "Alex Hormozi discusses capital leverage (money/assets), people leverage (team), and code/technology leverage (automation/systems).",
-            "Alex Hormozi emphasizes that great salespeople listen more than they talk, asking questions to understand customer problems before offering solutions."
-        ]
+        'questions': questions,
+        'ground_truths': ground_truths,
+        'relevant_chunks': relevant_chunks,  # Explicit chunks instead of IDs
+        'metadata': data.get('metadata', {})
     }
 
 
-def run_baseline_evaluation():
-    """Run evaluation against the baseline RAG agent using real data."""
-    print("[START] Starting baseline RAG agent evaluation with real Hormozi data...")
+def run_evaluation_with_grid_search():
+    """Run evaluation with grid search over chunking parameters."""
+    print("[START] Starting evaluation with grid search over chunking parameters...")
 
-    # Load long form transcript data for better evaluation
-    print("[DATA] Loading long form transcript data from Supabase...")
-    try:
-        from utils.db_inspector import DatabaseInspector
-        from agents.data_preprocessing import BusinessContentPreprocessor
-        from langchain.schema import Document
+    # Get evaluation dataset from JSON
+    eval_data = load_evaluation_dataset_from_json()
+    questions = eval_data['questions']
+    ground_truths = eval_data['ground_truths']
+    relevant_chunks = eval_data['relevant_chunks']  # List of lists of chunk dicts
 
-        inspector = DatabaseInspector()
-        conn = inspector._get_connection()
-        cursor = conn.cursor()
+    # Extract unique video IDs from the evaluation dataset
+    video_ids = set()
+    for chunk_list in relevant_chunks:
+        for chunk in chunk_list:
+            video_ids.add(chunk['metadata']['video_id'])
 
-        # Filter for long form transcripts (actual transcript content preferred)
-        cursor.execute(f"""
-            SELECT * FROM {inspector.schema}.fact_youtube_transcripts
-            WHERE (transcript IS NOT NULL AND length(transcript) > 200)
-               OR (transcript_summary IS NOT NULL AND length(transcript_summary::text) > 200)
-            ORDER BY
-                CASE
-                    WHEN transcript IS NOT NULL THEN length(transcript)
-                    ELSE length(transcript_summary::text)
-                END DESC,
-                video_date DESC
-            LIMIT 5
-        """)
-        long_form_rows = cursor.fetchall()
+    print(f"Evaluation dataset covers {len(video_ids)} unique videos")
 
-        # Get column names
-        columns = inspector.get_table_columns('fact_youtube_transcripts')
-        column_names = [col['name'] for col in columns]
+    # Fetch the corresponding transcripts
+    connection_string = (
+        f"postgresql://{config.get('SUPABASE__DB_USER')}:"
+        f"{config.get('SUPABASE__DB_PASSWORD')}@"
+        f"{config.get('SUPABASE__DB_HOST')}:"
+        f"{config.get('SUPABASE__DB_PORT')}/"
+        f"{config.get('SUPABASE__DB_NAME')}"
+    )
 
-        # Convert to dict format
-        sample_data = []
-        for row in long_form_rows:
-            row_dict = dict(zip(column_names, row))
-            sample_data.append(row_dict)
+    conn = psycopg2.connect(connection_string)
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        cursor.close()
-        conn.close()
+    # Fetch transcripts for videos in eval dataset
+    video_ids_list = list(video_ids)
+    placeholders = ','.join(['%s'] * len(video_ids_list))
+    cursor.execute(f"""
+        SELECT video_id, video_name, transcript, transcript_summary
+        FROM {config.get('database', {}).get('schema', 'dw')}.fact_youtube_transcripts
+        WHERE video_id IN ({placeholders})
+    """, video_ids_list)
 
-        print(f"[OK] Found {len(sample_data)} long form transcripts")
+    eval_transcripts = cursor.fetchall()
+    cursor.close()
+    conn.close()
 
-        # Process into documents
+    print(f"Fetched {len(eval_transcripts)} transcripts for evaluation")
+
+    # Define parameter grid
+    param_grid = [
+        {'max_chunk_size': 300, 'min_chunk_size': 100, 'chunk_overlap': 30},
+        {'max_chunk_size': 400, 'min_chunk_size': 150, 'chunk_overlap': 50},
+        {'max_chunk_size': 500, 'min_chunk_size': 200, 'chunk_overlap': 75},
+    ]
+
+    results_summary = []
+
+    for params in param_grid:
+        print(f"\n[PARAMS] Testing parameters: {params}")
+
+        # Preprocess transcripts with current parameters
+        preprocessor = BusinessContentPreprocessor(
+            max_chunk_size=params['max_chunk_size'],
+            min_chunk_size=params['min_chunk_size'],
+            chunk_overlap=params['chunk_overlap'],
+            use_semantic_refinement=False,  # Disable for faster evaluation
+            use_hierarchy=False  # Disable for faster evaluation
+        )
+
+        # Process evaluation transcripts
         transcripts = []
-        for row in sample_data:
-            transcript_text = row.get('transcript')
-
-            # If no transcript, try transcript_summary
-            if not transcript_text:
-                summary = row.get('transcript_summary')
-                if summary:
-                    if isinstance(summary, str):
-                        try:
-                            import json
-                            parsed = json.loads(summary)
-                            if isinstance(parsed, dict):
-                                transcript_text = parsed.get('transcript', parsed.get('content', str(parsed)))
-                            else:
-                                transcript_text = str(parsed)
-                        except:
-                            transcript_text = summary
-                    else:
-                        transcript_text = str(summary)
-
-            # Fallback to video title if no content
-            if not transcript_text:
-                transcript_text = row.get('video_name', '')
-
-            if transcript_text and len(transcript_text) > 50:  # Only include substantial content
+        for row in eval_transcripts:
+            content = row['transcript'] or row['transcript_summary']
+            if content:
                 metadata = {
-                    'video_id': row.get('video_id', ''),
-                    'title': row.get('video_name', ''),
-                    'timestamp': str(row.get('video_date', '')),
-                    'channel': 'Alex Hormozi',
-                    'url': row.get('video_url', '')
+                    'video_id': row['video_id'],
+                    'title': row['video_name'],
+                    'source': 'youtube_transcript'
                 }
-                transcripts.append({
-                    'text': transcript_text,
-                    'metadata': metadata
-                })
+                transcripts.append({'text': content, 'metadata': metadata})
 
-        preprocessor = BusinessContentPreprocessor(chunk_size=400, chunk_overlap=100)
         documents = preprocessor.preprocess_batch(transcripts)
-        print(f"[OK] Created {len(documents)} document chunks from {len(transcripts)} long form transcripts")
+        print(f"[OK] Created {len(documents)} chunks")
 
-    except Exception as e:
-        print(f"[FAIL] Could not load long form transcript data: {e}")
-        import traceback
-        traceback.print_exc()
-        return
+        # Initialize RAG agent with processed documents
+        rag_agent = BaselineRAGAgent()
+        rag_agent.load_documents(documents)
+        rag_agent.initialize_agent()
 
-    # For evaluation, simulate retrieval based on content matching
-    print("[AGENT] Using content-based retrieval for evaluation...")
-    try:
-        # Simple keyword-based retrieval simulation for evaluation
-        def simulate_retrieval(question, docs, k=3):
-            question_lower = question.lower()
-            scored_docs = []
+        # Get answers
+        answers = []
+        contexts = []
+        retrieved_chunk_ids = []
 
-            for doc in docs:
-                content_lower = doc.page_content.lower()
-                score = 0
+        for i, question in enumerate(questions):
+            try:
+                # Get context using agent's retrieval
+                context = rag_agent._retrieve_context(question, top_k=4)
+                # For now, create mock chunk IDs (we'll improve this)
+                chunk_ids = [f"chunk_{j}" for j in range(len(context.split('\n\n')))]
+                retrieved_chunk_ids.append(chunk_ids)
 
-                # Simple scoring based on keyword matches
-                keywords = question_lower.split()
-                for keyword in keywords:
-                    if keyword in content_lower:
-                        score += 1
+                # Generate answer
+                answer = rag_agent.query(question)
+                answers.append(answer)
+                contexts.append([context])  # Wrap in list for evaluator
 
-                scored_docs.append((score, doc))
+            except Exception as e:
+                print(f"[WARN] Failed to answer question {i}: {e}")
+                answers.append("Error generating answer")
+                contexts.append([])
+                retrieved_chunk_ids.append([])
 
-            # Sort by score and return top k
-            scored_docs.sort(key=lambda x: x[0], reverse=True)
-            return [doc for score, doc in scored_docs[:k]]
+        # Create ground truth chunk IDs from relevant_chunks
+        ground_truth_chunk_ids = []
+        for chunk_list in relevant_chunks:
+            # Use chunk text hash as ID for now
+            chunk_ids = [f"gt_chunk_{hash(chunk['text'][:100])}" for chunk in chunk_list]
+            ground_truth_chunk_ids.append(chunk_ids)
 
-        print("[OK] Using simulated retrieval for evaluation")
-    except Exception as e:
-        print(f"[FAIL] Retrieval setup failed: {e}")
-        return
-
-    # Create test questions based on Hormozi content
-    print("[TEST] Preparing evaluation questions...")
-    test_data = create_hormozi_test_data()
-    questions = test_data['questions']
-    ground_truths = test_data['ground_truths']
-    print(f"[OK] Prepared {len(questions)} test questions")
-
-    # Get answers from the actual agent
-    print("[AGENT] Getting answers from RAG agent...")
-    answers = []
-    contexts = []
-
-    for i, question in enumerate(questions):
-        print(f"[AGENT] Answering question {i+1}/{len(questions)}: {question[:50]}...")
-        try:
-            # Retrieve relevant documents using simulated retrieval
-            retrieved_docs = simulate_retrieval(question, documents, k=3)
-            context_texts = [doc.page_content for doc in retrieved_docs]
-
-            # Generate answer using retrieved context (simplified)
-            context_str = "\n\n".join(context_texts)
-            answer = f"Based on Alex Hormozi's teachings: {ground_truths[i]}"
-
-            answers.append(answer)
-            contexts.append(context_texts)
-
-        except Exception as e:
-            print(f"[WARN] Failed to get answer for question {i+1}: {e}")
-            answers.append("Unable to generate answer")
-            contexts.append([])
-
-    print(f"[OK] Generated {len(answers)} answers from agent")
-
-    # Run evaluation
-    print("[EVAL] Running RAGAS evaluation...")
-    evaluator = RAGEvaluator()
-
-    try:
+        # Evaluate using DeepEval
+        evaluator = RAGEvaluator()
         results = evaluator.evaluate_dataset(
             questions=questions,
             answers=answers,
@@ -199,46 +173,57 @@ def run_baseline_evaluation():
             ground_truths=ground_truths
         )
 
-        print("\n[RESULTS] Evaluation Results:")
-        print("=" * 50)
+        # Add basic chunking statistics (DeepEval doesn't provide chunking efficiency metrics)
+        results.update({
+            'num_chunks': len(documents),
+            'avg_chunk_size': np.mean([len(doc.page_content.split()) for doc in documents]) if documents else 0,
+            'chunk_params': params
+        })
 
-        # Handle RAGAS EvaluationResult object
-        try:
-            # Try accessing as dict first
-            for metric, score in results.items():
-                print(".3f")
-        except AttributeError:
-            # If that fails, try other methods
-            try:
-                # Check if it has a scores attribute
-                if hasattr(results, 'scores'):
-                    for metric, score in results.scores.items():
-                        print(".3f")
+        results_summary.append({
+            'params': params,
+            'metrics': results,
+            'num_chunks': len(documents)
+        })
+
+        print(f"[RESULTS] {params}: {results}")
+
+    # Write markdown report
+    with open('eval_report.md', 'w', encoding='utf-8') as f:
+        f.write("# RAG Evaluation Report\n\n")
+        f.write("## Grid Search Results Summary\n\n")
+
+        for result in results_summary:
+            params = result['params']
+            metrics = result['metrics']
+            f.write(f"### Parameters: {params}\n")
+            f.write(f"- Number of chunks: {result['num_chunks']}\n")
+            for metric, value in metrics.items():
+                if isinstance(value, float):
+                    f.write(f"- {metric}: {value:.3f}\n")
                 else:
-                    print(f"Results object type: {type(results)}")
-                    print(f"Results: {results}")
-            except Exception as e:
-                print(f"Could not parse results: {e}")
-                print(f"Results repr: {repr(results)}")
+                    f.write(f"- {metric}: {value}\n")
+            f.write("\n")
 
-        # Print detailed results
-        print("\n[DETAILS] Detailed Results:")
-        print("-" * 30)
-        for i, (q, a, gt, ctx) in enumerate(zip(questions, answers, ground_truths, contexts)):
-            print(f"\nQuestion {i+1}: {q}")
-            print(f"Ground Truth: {gt}")
-            print(f"Agent Answer: {a[:200]}{'...' if len(a) > 200 else ''}")
-            print(f"Context chunks: {len(ctx)}")
-            print("-" * 50)
+        # Find best configuration
+        if results_summary:
+            # Simple heuristic: balance answer relevancy and faithfulness
+            best_result = max(results_summary,
+                              key=lambda x: (x['metrics'].get('answer_relevancy_mean', 0) +
+                                           x['metrics'].get('faithfulness_mean', 0)) / 2)
+            f.write("## Best Configuration\n\n")
+            f.write(f"**Recommended parameters:** {best_result['params']}\n\n")
+            f.write("**Metrics:**\n")
+            for metric, value in best_result['metrics'].items():
+                if isinstance(value, float):
+                    f.write(f"- {metric}: {value:.3f}\n")
+                else:
+                    f.write(f"- {metric}: {value}\n")
 
-    except Exception as e:
-        print(f"[FAIL] Evaluation failed: {e}")
-        print("This may be due to missing dependencies or API issues")
-        import traceback
-        traceback.print_exc()
+    print("Evaluation report written to eval_report.md")
 
 
 if __name__ == "__main__":
     # Add current directory to path for imports
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    run_baseline_evaluation()
+    run_evaluation_with_grid_search()

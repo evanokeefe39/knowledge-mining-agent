@@ -1,43 +1,47 @@
 """
-Evaluation module for RAG system performance.
+Evaluation module for RAG system performance using DeepEval.
 
-Implements metrics from RAGAS framework: context precision, context recall,
-faithfulness, and answer relevancy.
+Implements comprehensive RAG evaluation metrics:
+- Answer Relevancy: How relevant is the answer to the question
+- Faithfulness: How factually consistent is the answer with the context
+- Contextual Relevancy: How relevant is the retrieved context to the question
+- Contextual Recall: How much of the ground truth information is recalled
+- Contextual Precision: How precise is the retrieved context
 """
 
 from typing import List, Dict, Any, Union
-from ragas import evaluate
-from ragas.metrics import (
-    context_precision,
-    context_recall,
-    faithfulness,
-    answer_relevancy
+import numpy as np
+from deepeval import evaluate
+from deepeval.metrics import (
+    AnswerRelevancyMetric,
+    FaithfulnessMetric,
+    ContextualRelevancyMetric,
+    ContextualRecallMetric,
+    ContextualPrecisionMetric
 )
-from datasets import Dataset
+from deepeval.test_case import LLMTestCase
 
 
 class RAGEvaluator:
-    """Evaluator for RAG system performance using RAGAS framework.
+    """Evaluator for RAG system performance using DeepEval metrics.
 
-    Provides comprehensive evaluation of retrieval-augmented generation systems
-    using industry-standard metrics. Specifically designed for assessing
-    business content Q&A systems with focus on factual accuracy and relevance.
+    Uses DeepEval's comprehensive suite of RAG evaluation metrics for
+    thorough assessment of retrieval-augmented generation systems.
     """
 
-    def __init__(self):
-        """Initialize evaluator with standard RAGAS metrics.
+    def __init__(self, model: str = "gpt-4o-mini"):
+        """Initialize evaluator with DeepEval metrics.
 
-        Sets up the four core evaluation metrics:
-        - Context Precision: Relevance of retrieved documents
-        - Context Recall: Completeness of retrieved information
-        - Faithfulness: Groundedness of answers in retrieved context
-        - Answer Relevancy: Alignment of answers with questions
+        Args:
+            model: LLM model to use for evaluation judgments
         """
+        self.model = model
         self.metrics = [
-            context_precision,
-            context_recall,
-            faithfulness,
-            answer_relevancy
+            AnswerRelevancyMetric(model=model, threshold=0.7),
+            FaithfulnessMetric(model=model, threshold=0.7),
+            ContextualRelevancyMetric(model=model, threshold=0.7),
+            ContextualRecallMetric(model=model, threshold=0.7),
+            ContextualPrecisionMetric(model=model, threshold=0.7)
         ]
 
     def evaluate_dataset(self,
@@ -45,62 +49,93 @@ class RAGEvaluator:
                          answers: List[str],
                          contexts: List[List[str]],
                          ground_truths: List[str]) -> Dict[str, Any]:
-        """Evaluate RAG performance on a complete dataset.
-
-        Runs comprehensive evaluation across multiple Q&A pairs to assess
-        overall system performance on business content queries.
+        """Evaluate RAG performance on a complete dataset using DeepEval.
 
         Args:
-            questions: List of business-related questions from users
-            answers: List of generated answers from the RAG system
-            contexts: List of retrieved context chunks for each question,
-                     where each context is a list of strings
-            ground_truths: List of verified correct answers for comparison
+            questions: List of questions
+            answers: List of generated answers
+            contexts: List of retrieved context chunks (list of lists)
+            ground_truths: List of verified correct answers
 
         Returns:
-            Dictionary containing average scores for each metric:
-            - context_precision: Average precision of retrieved contexts
-            - context_recall: Average recall of relevant information
-            - faithfulness: Average faithfulness to retrieved context
-            - answer_relevancy: Average relevance of answers to questions
+            Dictionary with evaluation results from all metrics
         """
-        # Prepare dataset
-        data = {
-            'question': questions,
-            'answer': answers,
-            'contexts': contexts,
-            'ground_truth': ground_truths
-        }
+        # Create test cases for DeepEval
+        test_cases = []
+        for question, answer, context_list, ground_truth in zip(
+            questions, answers, contexts, ground_truths
+        ):
+            # Join context chunks into a single string
+            context = "\n\n".join(context_list) if context_list else ""
 
-        dataset = Dataset.from_dict(data)
+            test_case = LLMTestCase(
+                input=question,
+                actual_output=answer,
+                expected_output=ground_truth,
+                retrieval_context=context_list  # DeepEval expects list of strings
+            )
+            test_cases.append(test_case)
 
         # Run evaluation
-        results = evaluate(dataset, metrics=self.metrics)
+        evaluation_results = evaluate(
+            test_cases=test_cases,
+            metrics=self.metrics,
+            print_results=False  # We'll format our own output
+        )
+
+        # Aggregate results
+        results = {}
+        for metric in self.metrics:
+            metric_name = metric.__class__.__name__.replace('Metric', '').lower()
+            scores = [result.score for result in evaluation_results if result.metric == metric.__class__.__name__]
+            if scores:
+                results[f"{metric_name}_mean"] = np.mean(scores)
+                results[f"{metric_name}_std"] = np.std(scores)
+                results[f"{metric_name}_min"] = np.min(scores)
+                results[f"{metric_name}_max"] = np.max(scores)
 
         return results
 
-    def evaluate_single(self,
-                        question: str,
-                        answer: str,
-                        contexts: List[str],
-                        ground_truth: str) -> Dict[str, Any]:
-        """Evaluate a single Q&A interaction.
+    def evaluate_retrieval(self,
+                            retrieved_chunk_ids: List[List[str]],
+                            ground_truth_chunk_ids: List[List[str]],
+                            k: int = 4) -> Dict[str, float]:
+        """Legacy method for backward compatibility - now uses DeepEval metrics.
 
-        Useful for real-time evaluation of individual queries or for
-        debugging specific cases in the business content domain.
+        This method is kept for compatibility but evaluation should use evaluate_dataset
+        for comprehensive assessment.
 
         Args:
-            question: A single business-related question
-            answer: The generated answer from the RAG system
-            contexts: List of retrieved context strings for this question
-            ground_truth: The verified correct answer for comparison
+            retrieved_chunk_ids: List of lists of retrieved chunk IDs for each query
+            ground_truth_chunk_ids: List of lists of ground truth relevant chunk IDs
+            k: Number of top results to evaluate
 
         Returns:
-            Dictionary with individual metric scores for this Q&A pair
+            Dict with basic retrieval statistics
         """
-        return self.evaluate_dataset(
-            questions=[question],
-            answers=[answer],
-            contexts=[contexts],
-            ground_truths=[ground_truth]
-        )
+        precisions = []
+        recalls = []
+
+        for retrieved, ground_truth in zip(retrieved_chunk_ids, ground_truth_chunk_ids):
+            # Convert to sets for intersection
+            retrieved_set = set(retrieved[:k])
+            ground_truth_set = set(ground_truth)
+
+            # Precision@k: fraction of retrieved that are relevant
+            if retrieved_set:
+                precision = len(retrieved_set & ground_truth_set) / len(retrieved_set)
+            else:
+                precision = 0.0
+            precisions.append(precision)
+
+            # Recall@k: fraction of relevant that are retrieved
+            if ground_truth_set:
+                recall = len(retrieved_set & ground_truth_set) / len(ground_truth_set)
+            else:
+                recall = 0.0
+            recalls.append(recall)
+
+        return {
+            f'precision@{k}': np.mean(precisions),
+            f'recall@{k}': np.mean(recalls)
+        }

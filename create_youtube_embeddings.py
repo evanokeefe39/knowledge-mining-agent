@@ -39,12 +39,13 @@ def fetch_youtube_transcripts(limit: int = 10) -> List[Dict[str, Any]]:
     conn = psycopg2.connect(connection_string)
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-    # Fetch transcripts with summaries
+    # Fetch long-form transcripts using the transcript_length_label
     cursor.execute(f"""
         SELECT video_id, video_name, video_url, transcript, transcript_summary, video_date
         FROM {config.get('database', {}).get('schema', 'dw')}.fact_youtube_transcripts
-        WHERE (transcript IS NOT NULL AND length(transcript) > 200)
-           OR (transcript_summary IS NOT NULL AND length(transcript_summary::text) > 100)
+        WHERE transcript_length_label = 'long_form'
+           AND transcript IS NOT NULL
+           AND length(transcript) > 1000  -- Additional length check
         ORDER BY video_date DESC
         LIMIT %s
     """, (limit,))
@@ -92,19 +93,26 @@ def create_embeddings_pipeline():
     print("Creating vector embeddings for YouTube transcripts")
     print("=" * 60)
 
-    # Fetch transcript data
-    print("Fetching YouTube transcript data from Supabase...")
-    transcripts = fetch_youtube_transcripts(limit=20)
-    print(f"Found {len(transcripts)} transcripts with sufficient content")
+    # Fetch long-form transcript data
+    print("Fetching long-form YouTube transcripts from Supabase...")
+    transcripts = fetch_youtube_transcripts(limit=50)  # Higher limit for long-form
+    print(f"Found {len(transcripts)} long-form transcripts without existing embeddings")
 
     if not transcripts:
         print("No suitable transcripts found")
         return
 
-    # Initialize preprocessor with semantic chunking
-    print("Applying semantic chunking...")
-    preprocessor = BusinessContentPreprocessor(chunk_size=800, chunk_overlap=100)
-    documents = preprocessor.preprocess_batch_semantic(transcripts)
+    # Initialize preprocessor with new chunking strategy
+    print("Applying adaptive chunking...")
+    preprocessor = BusinessContentPreprocessor(
+        max_chunk_size=400,
+        min_chunk_size=150,
+        chunk_overlap=50,
+        use_semantic_refinement=True,
+        use_hierarchy=True,
+        stopwords_path="stopwords.txt"
+    )
+    documents = preprocessor.preprocess_batch(transcripts)
 
     print(f"Created {len(documents)} semantic chunks from {len(transcripts)} transcripts")
 
@@ -125,8 +133,8 @@ def create_embeddings_pipeline():
     except Exception as e:
         print(f"Retrieval test failed: {e}")
 
-    print("\nYouTube transcript embeddings pipeline complete!")
-    print("You can now use the RAG agent to query business content with improved semantic retrieval.")
+    print("\nLong-form YouTube transcript embeddings pipeline complete!")
+    print("Embeddings created for new long-form content with adaptive chunking strategy.")
 
 
 if __name__ == "__main__":

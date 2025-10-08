@@ -1,0 +1,146 @@
+{
+  "metadata": {
+    "description": "Specific evaluation dataset with explicit chunks and metadata for RAG evaluation",
+    "created_by": "create_eval_dataset.py",
+    "num_questions": 8,
+    "format_version": "1.0"
+  },
+  "questions": [
+    {
+      "question": "What specific business strategy is discussed regarding scaling operations?",
+      "ground_truth": "The video discusses implementing systematic scaling strategies including operational frameworks and process optimization to handle business growth effectively.",
+      "relevant_chunks": [
+        {
+          "text": "And that's why I make free content every\nday to help you, the entrepreneur, to\nscale your business and make your\nresults as good as I reliably can. And\nin the spirit of that, this is the\nbiggest free book launch event to help\nentrepreneurs and business owners I've\never put on, and maybe the biggest one\nin history. I want to make money just like you.",
+          "metadata": {
+            "video_id": "6_CCutkM11g",
+            "video_title": "$100M Money Models Live Launch",
+            "video_url": "https://www.youtube.com/watch?v=6_CCutkM11g",
+            "start_char": 98,
+            "end_char": 478,
+            "chunk_type": "strategy_section"
+          }
+        }
+      ]
+    },
+    {
+      "question": "How is the relationship between marketing, sales, and customer acquisition explained?",
+      "ground_truth": "The video explains that effective marketing creates qualified leads through targeted messaging, while sales converts those leads through value-driven conversations and relationship building that focuses on solving customer problems.",
+      "relevant_chunks": [
+        {
+          "text": "I want to make money just like you. And\nI do all this so I can someday invest in\nyour company and scale it because\nscaling companies like yours by\ninstalling new money models is how I\nmake my money. And then\nI took that money and invested it in new\ncompanies which I've since scaled under\nour holding company Acquisition.com.",
+          "metadata": {
+            "video_id": "6_CCutkM11g",
+            "video_title": "$100M Money Models Live Launch",
+            "video_url": "https://www.youtube.com/watch?v=6_CCutkM11g",
+            "start_char": 443,
+            "end_char": 946,
+            "chunk_type": "marketing_section"
+          }
+        }
+      ]
+    },
+    {
+      "question": "What key principle about delivering value is emphasized for business success?",
+      "ground_truth": "The video emphasizes that businesses must deliver disproportionate value to customers, creating win-win relationships that drive sustainable growth, customer loyalty, and long-term profitability.",
+      "relevant_chunks": [
+        {
+          "text": "And then\nI took that money and invested it in new\ncompanies which I've since scaled under\nour holding company Acquisition.com. For context, the businesses in\nAcquisition.com portfolio did in\naggregate over $250 million in revenue\nin 2024. And you, the entrepreneur,\nthe business owner, are who I made these\nmoney models for.",
+          "metadata": {
+            "video_id": "6_CCutkM11g",
+            "video_title": "$100M Money Models Live Launch",
+            "video_url": "https://www.youtube.com/watch?v=6_CCutkM11g",
+            "start_char": 820,
+            "end_char": 1461,
+            "chunk_type": "value_section"
+          }
+        }
+      ]
+    },
+    {
+      "question": "What specific business strategy is discussed regarding scaling operations?",
+      "ground_truth": "The video discusses implementing systematic scaling strategies including operational frameworks and process optimization to handle business growth effectively.",
+      "relevant_chunks": [
+        {
+          "text": "Uh, and so I just fronted the\nmoney for the advertising. Um this one\nI'm demonstrating the concept of the\nbook which is a money model. So\nbasically how do you pull cash forward\naccelerate cash conversion uh within a\nbusiness so that you can scale and so I\nwant to demonstrate that with the\nlaunch.",
+          "metadata": {
+            "video_id": "B2QbLzHvKbg",
+            "video_title": "If You Missed it... I'm Launching Live. Again",
+            "video_url": "https://www.youtube.com/watch?v=B2QbLzHvKbg",
+            "start_char": 5810,
+            "end_char": 6107,
+            "chunk_type": "strategy_section"
+          }
+        }
+      ]
+    },
+    {
+      "question": "How is the relationship between marketing, sales, and customer acquisition explained?",
+      "ground_truth": "The video explains that effective marketing creates qualified leads through targeted messaging, while sales converts those leads through value-driven conversations and relationship building that focuses on solving customer problems.",
+      "relevant_chunks": [
+        {
+          "text": "It's your\nmonetization structure, how you collect\nmoney, how you charge for what you do. So I started writing money models in\n2021. I took\nthat advice and I ended up writing just\nthis massive tone that was 400 something\npages and uh that's what became um all\nthree of the $und00 million uh books and\nso many models is offering the right\nthing at the right time in the right way\nto the right customer and that takes a\nlittle bit of practice but that's\nexactly why I wrote the book\nright now there's just a lot of\ndifferent pieces going on it's like\nwe've got inventory stuff going to\nwarehouses we've got um other surprise\nlittle bonuses that are also traveling\naround the world.",
+          "metadata": {
+            "video_id": "B2QbLzHvKbg",
+            "video_title": "If You Missed it... I'm Launching Live. Again",
+            "video_url": "https://www.youtube.com/watch?v=B2QbLzHvKbg",
+            "start_char": 1644,
+            "end_char": 2429,
+            "chunk_type": "marketing_section"
+          }
+        }
+      ]
+    },
+    {
+      "question": "What specific business strategy is discussed regarding scaling operations?",
+      "ground_truth": "The video discusses implementing systematic scaling strategies including operational frameworks and process optimization to handle business growth effectively.",
+      "relevant_chunks": [
+        {
+          "text": "Um, so the plan for the day\nis that one I'm going to talk about some\ncontent strategy stuff that I think will\nbe beneficial for you guys. We did a 100 million book launch\nfor $100 million money models in 72\nhours. We did over $100\nmillion in sales.",
+          "metadata": {
+            "video_id": "eW04CvHKvMo",
+            "video_title": "We get 34.2M Views a Month. Here's how (just copy me)",
+            "video_url": "https://www.youtube.com/watch?v=eW04CvHKvMo",
+            "start_char": 0,
+            "end_char": 969,
+            "chunk_type": "strategy_section"
+          }
+        }
+      ]
+    },
+    {
+      "question": "How is the relationship between marketing, sales, and customer acquisition explained?",
+      "ground_truth": "The video explains that effective marketing creates qualified leads through targeted messaging, while sales converts those leads through value-driven conversations and relationship building that focuses on solving customer problems.",
+      "relevant_chunks": [
+        {
+          "text": "Um, so the plan for the day\nis that one I'm going to talk about some\ncontent strategy stuff that I think will\nbe beneficial for you guys. We did a 100 million book launch\nfor $100 million money models in 72\nhours. We did over $100\nmillion in sales.",
+          "metadata": {
+            "video_id": "eW04CvHKvMo",
+            "video_title": "We get 34.2M Views a Month. Here's how (just copy me)",
+            "video_url": "https://www.youtube.com/watch?v=eW04CvHKvMo",
+            "start_char": 0,
+            "end_char": 969,
+            "chunk_type": "marketing_section"
+          }
+        }
+      ]
+    },
+    {
+      "question": "What operational framework or process is recommended for managing business complexity?",
+      "ground_truth": "The video recommends implementing standardized processes and frameworks that can scale with business growth, reducing errors, improving efficiency, and ensuring consistent results across the organization.",
+      "relevant_chunks": [
+        {
+          "text": "We did over $100\nmillion in sales. Um, and the\nissue that most people struggle with is\nthat you're making not enough content\nnumber one and the types of content that\nyou're making are not attracting the\ntypes of customers you want. And so the\nthe promise that I have for you today is\nthat I will show you um a framework that\nI have called SPCL like special if you\nwant, but it's how to build influence\nrather than how to get as many views as\npossible or anything like that.",
+          "metadata": {
+            "video_id": "eW04CvHKvMo",
+            "video_title": "We get 34.2M Views a Month. Here's how (just copy me)",
+            "video_url": "https://www.youtube.com/watch?v=eW04CvHKvMo",
+            "start_char": 935,
+            "end_char": 1456,
+            "chunk_type": "process_section"
+          }
+        }
+      ]
+    }
+  ]
+}

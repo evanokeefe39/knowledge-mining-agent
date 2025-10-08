@@ -19,7 +19,7 @@ class Config:
     # Keys that contain sensitive information
     SECRET_KEYS = {
         'password', 'secret', 'key', 'token', 'api_key',
-        'db_password', 'openai_api_key'
+        'db_password', 'openai_api_key', 'openrouter_api_key'
     }
 
     def __init__(self):
