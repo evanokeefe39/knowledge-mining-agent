@@ -20,7 +20,7 @@ class AgentConfig(BaseModel):
 
 
 class DatabaseConfig(BaseModel):
-    schema: str = "dw"
+    default_schema: str = "dw"
     host: str
     user: str
     password: str
@@ -82,4 +82,4 @@ def load_config() -> Config:
 
 
 # Global config instance
-config = load_config()
+settings = load_config()
