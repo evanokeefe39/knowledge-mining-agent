@@ -144,3 +144,6 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Agent working folders
+.*-agent/

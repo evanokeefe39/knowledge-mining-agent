@@ -17,6 +17,24 @@ A class for the knowledge mining agent.
 
 Returns configuration settings parsed from config.yaml and .env.
 
+## Database Module
+
+### get_db()
+
+Returns a configured PostgreSQL database connection from the connection pool.
+
+### close_db(conn)
+
+Returns a database connection to the pool.
+
+### test_connection()
+
+Tests the database connection and logs the result.
+
+### describe_schema()
+
+Inspects and logs the structure of the configured database schema, including tables, columns, and row counts.
+
 ## Tools Module
 
 ### get_tools()
